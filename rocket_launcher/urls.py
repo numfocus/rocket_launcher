@@ -21,6 +21,7 @@ from core import views
 
 
 urlpatterns = [
+    path('expenses/', include('core.urls')),
     path('admin/', admin.site.urls),
     # path("login/", views.login, name="login"),
     # path("logout/", auth_views.LogoutView.as_view(), name="logout"),

@@ -1,0 +1,15 @@
+<h1>{{ expense }}</h1>
+
+{% if error_message %}<p><strong>{{ error_message }}</strong></p>{% endif %}
+
+<table>
+    <thead>
+    <th>column</th>
+    <th>value</th>
+    </thead>
+    <tbody>
+    <tr><td>Project</td><td>{{ expense.project }}</td></tr>
+    <tr><td>Description</td><td>{{ expense.expense_description }}</td></tr>
+    <tr><td>Total Amount</td><td>{{ expense.total_amount }}</td></tr>
+    </tbody>
+</table>
