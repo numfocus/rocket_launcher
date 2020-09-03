@@ -1,4 +1,9 @@
+from datetime import date
+
+from django.core.exceptions import ObjectDoesNotExist
+from django.core.mail import send_mail
 from django.db import models
+from price_parser import Price
 
 
 class Project(models.Model):
@@ -22,7 +27,7 @@ class Project(models.Model):
 class ProjectMember(models.Model):
     full_name = models.CharField(max_length=200)
     email = models.EmailField()
-    is_staff = models.BooleanField()
+    is_staff = models.BooleanField(default=False)
 
     def __str__(self):
         return f'{self.full_name} <{self.email}>'
@@ -42,6 +47,42 @@ class ExpensePayload(models.Model):
     """Payload for Expenses"""
     json = models.JSONField()
 
+    def create_expense(self):
+        project_name = self.json['field_NvweuLqiLo6j']
+        total_amount = Price.fromstring(self.json['field_yATiGkrJo6H3'])
+        project = Project.objects.get(name=project_name)
+        submitter_name = self.json['field_Lq2p858JwwDY']
+        submitter_email = self.json['field_rzAFVjNIJB6f']
+        payment_method_str = self.json['field_1oqZp7Z9PooA']
+        if payment_method_str=='Paypal':
+            payment_method = Expense.PaymentTypes.PAYPAL
+        else:
+            payment_method = Expense.PaymentTypes.NOT_PROVIDED
+        try:
+            submitter = ProjectMember.objects.get(email=submitter_email)
+        except ObjectDoesNotExist:
+            submitter = ProjectMember(full_name=submitter_name, email=submitter_email)
+            submitter.save()
+
+        return Expense(
+            additional_comments=self.json['field_zZrfMtbmmPkx'],
+            city=self.json['field_PLUHGdValPnt'],
+            expense_description=self.json['field_slfa1YMlonrG'],
+            payee_name=self.json['field_K4vHIxUFsgmk'],
+            payment_method=payment_method,
+            postal_code=self.json['field_kM3mTBzGrxrl'],
+            project=project,
+            raw_payload=self,
+            receipts_url=self.json['field_TjacJ4nxVvyJ'],
+            reason=self.json['field_ewgCjybmYp39'],
+            street_address_1=self.json['field_C454b5eVX0Ep'],
+            state=self.json['field_5XVjaG56SWJl'],
+            submit_date=date.today(),
+            submitter=submitter,
+            total_amount=total_amount.amount,
+            total_amount_currency=total_amount.currency,
+        )
+
 
 class Expense(models.Model):
     class PaymentTypes(models.TextChoices):
@@ -59,11 +100,12 @@ class Expense(models.Model):
     reason = models.CharField(max_length=1024)
     expense_description = models.TextField()
     total_amount = models.DecimalField(max_digits=20, decimal_places=2)
+    total_amount_currency = models.CharField(max_length=5, null=True)
     receipts_url = models.URLField()
     payee_name = models.CharField(max_length=200)
     additional_comments = models.TextField()
     street_address_1 = models.CharField(max_length=200)
-    street_address_2 = models.CharField(max_length=200)
+    street_address_2 = models.CharField(max_length=200, null=True)
     city = models.CharField(max_length=200)
     state = models.CharField(max_length=200)
     postal_code = models.CharField(max_length=10)
@@ -73,16 +115,16 @@ class Expense(models.Model):
         choices=PaymentTypes.choices,
         default=PaymentTypes.NOT_PROVIDED,
     )
-    ach_account_holder = models.CharField(max_length=200)
-    ach_routing_number = models.CharField(max_length=200)
-    ach_account_number = models.CharField(max_length=200)
-    ach_account_type = models.CharField(max_length=200)
-    wire_bank_id = models.CharField(max_length=200)
-    wire_bank_name = models.CharField(max_length=200)
-    wire_bank_address = models.CharField(max_length=200)
-    wire_account_holder = models.CharField(max_length=200)
-    wire_iban = models.CharField(max_length=200)
-    paypal_email = models.EmailField()
+    ach_account_holder = models.CharField(max_length=200, null=True)
+    ach_routing_number = models.CharField(max_length=200, null=True)
+    ach_account_number = models.CharField(max_length=200, null=True)
+    ach_account_type = models.CharField(max_length=200, null=True)
+    wire_bank_id = models.CharField(max_length=200, null=True)
+    wire_bank_name = models.CharField(max_length=200, null=True)
+    wire_bank_address = models.CharField(max_length=200, null=True)
+    wire_account_holder = models.CharField(max_length=200, null=True)
+    wire_iban = models.CharField(max_length=200, null=True)
+    paypal_email = models.EmailField(null=True)
     submit_date = models.DateField('date submitted')
     approved = models.BooleanField(default=False)
     approver = models.ForeignKey(
@@ -95,3 +137,12 @@ class Expense(models.Model):
 
     def __str__(self):
         return f'Expense from {self.project_member} submitted {self.submit_date}'
+
+    def email_finance_team(self):
+        send_mail(
+            f'New Finance request for {self.project.name}',
+            f'{self.submitter.full_name} is has submitted a request to be reimbursed for {self.total_amount}, Please see the appropriate spreadsheet.',
+            'rocket_launcher_bot@numfocus.org',
+            [self.project.projectfinancialteam.email],
+
+        )

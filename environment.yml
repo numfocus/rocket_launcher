@@ -3,7 +3,9 @@ channels:
 - conda-forge
 dependencies:
 - pip==20.2.1
+- psycopg2==2.8.5
 - pip:
   - django==3.1.0
+  - price-parser==0.3.3
   - python-dotenv==0.14.0
   - social-auth-app-django==4.0.0

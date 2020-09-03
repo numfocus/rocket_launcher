@@ -163,3 +163,11 @@ AUTHENTICATION_BACKENDS = (
 #     'social_core.pipeline.social_auth.load_extra_data',
 #     'social_core.pipeline.user.user_details',
 # )
+
+# Email Settings
+EMAIL_HOST = 'foo'
+EMAIL_PORT = 'bar'
+EMAIL_HOST_USER = 'quuz'
+EMAIL_HOST_PASSWORD = 'baz'
+EMAIL_USE_TLS = True
+EMAIL_USE_SSL = False
