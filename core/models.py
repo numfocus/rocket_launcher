@@ -6,6 +6,11 @@ from django.db import models
 from price_parser import Price
 
 
+class EmailTemplate(models.Model):
+    name = models.CharField(max_length=200)
+    template = models.TextField()
+
+
 class Project(models.Model):
     class ProjectTypes(models.TextChoices):
         FULLY_SPONSORED = 'F'
@@ -33,7 +38,7 @@ class ProjectMember(models.Model):
         return f'{self.full_name} <{self.email}>'
 
 
-class ProjectFinancialTeam(models.Model):
+class FinancialTeam(models.Model):
     project = models.OneToOneField(
         Project,
         on_delete=models.CASCADE,
@@ -41,6 +46,8 @@ class ProjectFinancialTeam(models.Model):
     )
     members = models.ManyToManyField(ProjectMember)
     email = models.EmailField(null=True)
+    finance_sheet = models.URLField(null=True)
+    email_template = models.ForeignKey('EmailTemplate', null=True, on_delete=models.SET_NULL)
 
 
 class ExpensePayload(models.Model):
@@ -139,10 +146,14 @@ class Expense(models.Model):
         return f'Expense from {self.project_member} submitted {self.submit_date}'
 
     def email_finance_team(self):
+        subject = f'New Finance request for {self.project.name}'
+        message = self.project.financialteam.email_template.format({
+            'financial_sheet': self.project.finance_sheet,
+            **self.__dict__
+        })
         send_mail(
-            f'New Finance request for {self.project.name}',
-            f'{self.submitter.full_name} is has submitted a request to be reimbursed for {self.total_amount}, Please see the appropriate spreadsheet.',
+            subject,
+            message,
             'rocket_launcher_bot@numfocus.org',
-            [self.project.projectfinancialteam.email],
-
+            [self.project.financialteam.email],
         )

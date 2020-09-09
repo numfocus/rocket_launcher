@@ -1,10 +1,10 @@
 from django.contrib import admin
 
-from .models import Expense, Project, ProjectMember, ProjectFinancialTeam
+from .models import EmailTemplate, Expense, Project, ProjectMember, FinancialTeam
 
 
-class ProjectFinancialTeam(admin.TabularInline):
-    model = ProjectFinancialTeam
+class EmailTemplateAdmin(admin.ModelAdmin):
+    pass
 
 
 class ExpenseAdmin(admin.ModelAdmin):
@@ -45,14 +45,19 @@ class ExpenseAdmin(admin.ModelAdmin):
     list_filter = ['submit_date']
 
 
+class FinancialTeamAdmin(admin.TabularInline):
+    model = FinancialTeam
+
+
 class ProjectAdmin(admin.ModelAdmin):
-    inlines = [ProjectFinancialTeam]
+    inlines = [FinancialTeamAdmin]
 
 
 class ProjectMemberAdmin(admin.ModelAdmin):
     pass
 
 
+admin.site.register(EmailTemplate, EmailTemplateAdmin)
 admin.site.register(Expense, ExpenseAdmin)
 admin.site.register(Project, ProjectAdmin)
 admin.site.register(ProjectMember, ProjectMemberAdmin)
